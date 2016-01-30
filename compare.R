@@ -48,17 +48,30 @@ for (j in 4:ncols) {
   print(paste("Number of differences for column", j, gsub("merged.", "", colnames(df_join)[j]), ":", num_diff))
 }
 
+# Lets identify the rows where there aren't any differences ...
+goods <- which(rowSums(!df_join[(ncols * 2): ncol(df_join)]) == 0)
+bads <- which(rowSums(!df_join[(ncols * 2): ncol(df_join)]) > 0)
+
+# ... and separate both data sets
+df_bad <- df_join[bads,]
+df_goods <- df_join[goods,]
+
+# Let's free up some memory now
+remove(df_join, dt_merged, dt_raw)
+
 
 # to get the keys of records with differences in e.g. given_names_full (column 8) we can call
 # df_join[!df_join[8 + col_dist], 1]
 
-# to display all records with changes in surname first
-View(df_join[!df_join[10 + col_dist], c(1, 7:10, 24:27)])
+# to display all records with name changes
+#View(df_bad[!df_bad[10 + col_dist], c(1, 7:10, 24:27)])
 
 
 # this one is probably right. HOWEVER: this just creates a new vector which is unrelated to the original data frame. On the other side,
 # it doesn't make sense to calculate the distance for equal strings
-system.time(d <- apply(df_join[!df_join[,], c(10, 27)], 1, function(x) { adist(x[1], x[2]) } ))
+system.time(d <- apply(df_bad[, c(10, 27)], 1, function(x) { adist(x[1], x[2]) } ))
+f <- factor(d, exclude = 0)
+plot(f)
 
 
 # the following is a list of both raw and validated records, ordered by source system key
