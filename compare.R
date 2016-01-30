@@ -11,6 +11,7 @@ cols_raw <- gsub("person.0.", "", as.vector(cols$V1))
 
 ncols <- nrow(cols)
 
+# the data used here is a mongoexport from t02
 system.time(dt_merged <- fread("record_actual_merged_subs.csv", sep = ",", header = TRUE, na.strings = NULL, encoding = "UTF-8", colClasses = rep("character", ncols)))
 system.time(dt_raw <- fread("record_actual_raw_subs.csv", sep = ",", header = TRUE, na.strings = NULL, encoding = "UTF-8", colClasses = rep("character", ncols)))
 
@@ -33,29 +34,27 @@ system.time(for (j in 4:ncols) {
   df_join <- cbind(df_join, isEqual)
 })
 
+# This is the distance between a merged column and its corresponding same/different vector
+col_dist <- 2 * ncols - 4
 
 # assign proper column names
-start <- ncols * 2 + 1
-end <- ncols * 3
-
 system.time(for (j in 4:ncols) {
-  colnames(df_join)[j + 2 * ncols - 4] <- paste("equal_", gsub("raw.", "", cols_raw[j]), sep = "")
+  colnames(df_join)[j + col_dist] <- paste("equal_", gsub("raw.", "", cols_raw[j]), sep = "")
 })
 
 # print number of differences
 for (j in 4:ncols) {
-  num_diff <- sum(!df_join[j + 2 * ncols - 4])
+  num_diff <- sum(!df_join[j + col_dist])
   print(paste("Number of differences for column", j, gsub("merged.", "", colnames(df_join)[j]), ":", num_diff))
 }
 
 
 # to get the keys of records with differences in e.g. given_names_full (column 8) we can call
-# df_join[!le[[8]], 1]
+# df_join[!df_join[8 + col_dist], 1]
 
 # to display all records with changes in surname first
-View(df_join[!le[[10]], c(10, 27)])
-# the following is not right, because it compares every element of x with every element of y which is not what we want 
-# system.time(d <- adist(df_join[!le[[10]], 10], df_join[!le[[10]], 27]))
+View(df_join[!df_join[10 + col_dist], c(1, 7:10, 24:27)])
+
 
 # this one is probably right. HOWEVER: this just creates a new vector which is unrelated to the original data frame. On the other side,
 # it doesn't make sense to calculate the distance for equal strings
