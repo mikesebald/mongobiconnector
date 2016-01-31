@@ -97,7 +97,6 @@ dt_all <- rbindlist(list(dt_merged, dt_raw))
 setorder(dt_all, merged.key)
 
 
-
 print(paste("Number of validated records", kpi1))
 print(paste("Number of raw records", kpi2))
 print(paste("Number of records joining validated and raw (sanity check only)", kpi1))
