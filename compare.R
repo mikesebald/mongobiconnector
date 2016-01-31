@@ -19,6 +19,7 @@ kpi1 <- nrow(dt_merged)
 kpi2 <- nrow(dt_raw)
 
 system.time(df_join <- as.data.frame(merge(dt_merged, dt_raw, by.x = "merged.key", by.y = "raw.key")))
+
 colnames(df_join)[1:ncols] <- cols_merged
 colnames(df_join)[(ncols + 1):(ncols * 2 - 1)] <- cols_raw[c(1, 3:ncols)]
 
@@ -27,12 +28,18 @@ paste(kpi3 <- nrow(df_join))
 
 # the following creates a boolean vector per field comparison. Each vector indicates if there 
 # is a difference in the respective field, so each vector identifies the records with differences in given name, 
-# gender, salutation and so on. Each vector is cbound to the data frame, starting at 2*ncols
+# gender, salutation and so on. Each vector is cbound to the data frame, starting at 2*ncols.
 # columns 1 to 3 just contain source, key and type so nothing to compare here
-system.time(for (j in 4:ncols) {
-  isEqual <- apply(df_join[, c(j, j + ncols - 1)], 1, function(x) {x[1] == x[2]} )
+# thanks to the post in http://datascienceplus.com/strategies-to-speedup-r-code/ this piece is now 150x faster than 
+# using apply which was unnecessary anyway
+
+isEqual <- vector(length = nrow(df_join))
+system.time(
+for (j in 4:ncols) {
+  isEqual <- df_join[j] == df_join[j + ncols - 1]
   df_join <- cbind(df_join, isEqual)
 })
+
 
 # This is the distance between a merged column and its corresponding same/different vector
 col_dist <- 2 * ncols - 4
@@ -49,28 +56,39 @@ for (j in 4:ncols) {
 }
 
 # Lets identify the rows where there aren't any differences ...
-goods <- which(rowSums(!df_join[(ncols * 2): ncol(df_join)]) == 0)
-bads <- which(rowSums(!df_join[(ncols * 2): ncol(df_join)]) > 0)
+system.time(goods <- which(rowSums(!df_join[(ncols * 2): ncol(df_join)]) == 0))
+system.time(bads <- which(rowSums(!df_join[(ncols * 2): ncol(df_join)]) > 0))
 
 # ... and separate both data sets
-df_bad <- df_join[bads,]
-df_goods <- df_join[goods,]
+system.time(df_bad <- df_join[bads,])
+system.time(df_goods <- df_join[goods,])
 
 # Let's free up some memory now
-remove(df_join, dt_merged, dt_raw)
-
-
-# to get the keys of records with differences in e.g. given_names_full (column 8) we can call
-# df_join[!df_join[8 + col_dist], 1]
-
-# to display all records with name changes
-#View(df_bad[!df_bad[10 + col_dist], c(1, 7:10, 24:27)])
-
+remove(isEqual, df_join, dt_merged, dt_raw)
 
 # this one is probably right. HOWEVER: this just creates a new vector which is unrelated to the original data frame. On the other side,
 # it doesn't make sense to calculate the distance for equal strings
-system.time(d <- apply(df_bad[, c(10, 27)], 1, function(x) { adist(x[1], x[2]) } ))
+system.time(d2 <- df_bad[, 10] == df_bad[, 27])
+
+# the following will kill R...
+# d <- adist(df_bad[, 10], df_bad[, 27])
+# ... so we use a different function
+system.time(d <- stringdist(df_bad[, 10], df_bad[, 10 + ncols - 1]))
 f <- factor(d, exclude = 0)
+plot(f)
+
+# this was just one column, let's concatenate the most imprtant name fields
+parts_1 <- c(6:10)
+parts_2 <- parts_1 + ncols -1
+
+system.time(a <- apply(df_bad[, parts_1], 1, function (x) { paste(x, collapse = "")}))
+system.time(b <- apply(df_bad[, parts_2], 1, function (x) { paste(x, collapse = "")}))
+
+system.time(c <- stringdist(a, b))
+
+View(cbind(a, b, c))
+
+f <- factor(c, exclude = 0)
 plot(f)
 
 
