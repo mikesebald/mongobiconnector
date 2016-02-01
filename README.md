@@ -1,3 +1,3 @@
 # compare
 
-Script ot compare two different CDH validation results
+Script to compare two different CDH validation results
