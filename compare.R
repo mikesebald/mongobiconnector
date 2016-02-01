@@ -1,6 +1,7 @@
 library(data.table)
 library(stringdist)
 
+
 setwd("~/R/compare_data/")
 
 # assumption: merged and raw record files have the same number of columns
