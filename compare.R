@@ -1,7 +1,7 @@
 library(data.table)
 library(stringdist)
 
-setwd("~/R/compare_data/")
+setwd("e:/R/compare_data/")
 
 # assumption: merged and raw record files have the same number of columns
 cols <- read.table("fieldfile_merged.txt", stringsAsFactors = FALSE)
@@ -50,6 +50,7 @@ system.time(for (j in 4:ncols) {
 })
 
 # print number of differences
+# calculation can be done simpler, see below!
 for (j in 4:ncols) {
   num_diff <- sum(!df_join[j + col_dist])
   print(paste("Number of differences for column", j, gsub("merged.", "", colnames(df_join)[j]), ":", num_diff))
@@ -91,6 +92,15 @@ View(cbind(a, b, c))
 f <- factor(c, exclude = 0)
 plot(f)
 
+# we can now calculate the number of differences per column, more efficient than above!
+# it'll be ugly, but let's plot them
+col_sums <- colSums(!df_bad[(ncols * 2): ncol(df_bad)])
+plot(col_sums)
+
+# and lets do the rowsums as well (number of different fields per reocrd)
+row_sums <- rowSums(!df_bad[(ncols * 2): ncol(df_bad)])
+rf <- factor(row_sums)
+plot(rf)
 
 # the following is a list of both raw and validated records, ordered by source system key
 dt_all <- rbindlist(list(dt_merged, dt_raw))
