@@ -1,7 +1,6 @@
 library(data.table)
 library(stringdist)
 
-
 setwd("~/R/compare_data/")
 
 # assumption: merged and raw record files have the same number of columns
@@ -24,7 +23,7 @@ system.time(df_join <- as.data.frame(merge(dt_merged, dt_raw, by.x = "merged.key
 colnames(df_join)[1:ncols] <- cols_merged
 colnames(df_join)[(ncols + 1):(ncols * 2 - 1)] <- cols_raw[c(1, 3:ncols)]
 
-paste(kpi3 <- nrow(df_join))
+kpi3 <- nrow(df_join)
 
 
 # the following creates a boolean vector per field comparison. Each vector indicates if there 
