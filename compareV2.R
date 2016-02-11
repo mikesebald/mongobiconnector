@@ -12,9 +12,9 @@ library(plotly)
 # CSV export structure. So we are creating a data frame with the header names
 # from the CSV exports. The data frame helps us to identify differences and
 # to rearrange if necessary
- 
-#setwd("e:/R/compare_data/")
-setwd("~/R/compare_data/")
+
+setwd("e:/R/compare_data/")
+#setwd("~/R/compare_data/")
 file.a <- "valid-15.4.csv"
 file.b <- "valid-16.1.csv"
 
@@ -38,6 +38,9 @@ length(colnames.b) <- max(length(colnames.a), length(colnames.b))
 
 column.names <- data.frame(colnames.a, colnames.b, colnames.a == colnames.b,
                            stringsAsFactors = FALSE)
+
+# this is the point where we should look at the source and rearrange,
+# if necessary. Both data sets whould have the same columns
 View(column.names)
 
 # ----------------------------------------------------------------------------
@@ -46,7 +49,7 @@ View(column.names)
 nrow.a <- nrow(dt.a)
 nrow.b <- nrow(dt.b)
 max.rows <- max(nrow.a, nrow.b)
-total.rows <- data.frame(c("CDH 15.4", "CDH 16.1"), 
+total.rows <- data.frame(c("CDH 15.4", "CDH 16.1"),
                          c(nrow.a, nrow.b),
                          c((max.rows - nrow.a), (max.rows - nrow.b)),
                          stringsAsFactors = FALSE)
@@ -95,11 +98,11 @@ nrow.address.a <- nrow(address.a)
 nrow.address.b <- nrow(address.b)
 
 max.rows <- max(nrow.address.a, nrow.address.b)
-address.rows <- data.frame(c("CDH 15.4", "CDH 16.1"), 
-                         c(nrow.address.a, nrow.address.b),
-                         c((max.rows - nrow.address.a), 
-                           (max.rows - nrow.address.b)),
-                         stringsAsFactors = FALSE)
+address.rows <- data.frame(c("CDH 15.4", "CDH 16.1"),
+                           c(nrow.address.a, nrow.address.b),
+                           c((max.rows - nrow.address.a),
+                             (max.rows - nrow.address.b)),
+                           stringsAsFactors = FALSE)
 colnames(address.rows) <- c("system", "records", "difference")
 
 plot.address.rows <- plot_ly(address.rows, x = system, y = records, 
@@ -111,10 +114,14 @@ layout(plot.address.rows, barmode = "stack")
 # now we have deduplicated unique addresses per source system and are ready to 
 # (INNER) join both data sets
 
-setkey(address.a, record.source, record.key, postal_address.type)
-setkey(address.b, record.source, record.key, postal_address.type)
-
+setkeyv(address.a, c("record.source", "record.key", "postal_address.type"))
+setkeyv(address.b, c("record.source", "record.key", "postal_address.type"))
 system.time(address.ab <- merge(address.a, address.b))
+
+# cleaning up the column names which have been messed up during the merge, make
+# sure they get a correct suffix
+colnames(address.ab) <- gsub("\\.x$", ".a", colnames(address.ab))
+colnames(address.ab) <- gsub("\\.y$", ".b", colnames(address.ab))
 
 nrow.address.ab <- nrow(address.ab)
 
@@ -160,7 +167,7 @@ rm(temp)
 # so on. Each vector is cbound to the right of the data frame
 # columns 1 to 3 just contain source, key and type so nothing to compare here
 # so the magic numbers here are 2, 3 and 4
-# 2 = the distance between the columns to compare
+# 2 = times x = the distance between the columns to compare
 # 3 = the three columns on the left we don't have to compare (source, key, type)
 # 4 = because we start at column 4 to compare fields
 # Thanks to the post in http://datascienceplus.com/strategies-to-speedup-r-code/
@@ -168,74 +175,71 @@ rm(temp)
 
 View(data.table(colnames(address.ab)))
 
-# TODO: provide proper names to the comparison columns
-ncol.address.ab <- ncol(address.a) - 3
+ncol.address <- ncol(address.a) - 3
 df.address.ab <- as.data.frame(address.ab)
 is.equal <- vector(length = nrow(address.ab))
 system.time(
-  for (j in 4:ncol.address.ab) {
-    is.equal <- df.address.ab[j] == df.address.ab[j + ncol.address.ab]
+  for (j in 4:(ncol.address + 3)) {
+    is.equal <- df.address.ab[j] == df.address.ab[j + ncol.address]
     df.address.ab <- cbind(df.address.ab, is.equal)
   }
 )
 
+# assign proper names to the comparison columns
+col.start <- ncol.address * 2 + 4
+col.end <- ncol(df.address.ab)
 
-# TODO: it is quite painfull to have source, key and type on the left side. Find
-#       a solution!
-
-# we keep the postition of the last column with data before the comparison 
-# starts, because we need that more often 
-comp.col <- ncol.address.ab * 2 + 3
+colnames(df.address.ab)[col.start:col.end] <-
+  gsub("\\.a$", ".equal", colnames(df.address.ab[col.start:col.end]))
 
 # some sample comparisons
-street.compare <- df.address.ab[, c(1:3, 4, ncol.address.ab + 4, comp.col + 4)]
-zip.compare <- df.address.ab[, c(1:3, 6, ncol.address.ab + 6, comp.col + 6)]
-city.compare <- df.address.ab[, c(1:3, 7, ncol.address.ab + 7, comp.col + 7)]
+street.compare <- df.address.ab[, c(1:3, c(0,
+                                           ncol.address,
+                                           ncol.address * 2) + 4)]
+zip.compare <- df.address.ab[, c(1:3, c(0,
+                                        ncol.address,
+                                        ncol.address * 2) + 6)]
+city.compare <- df.address.ab[, c(1:3, c(0,
+                                         ncol.address,
+                                         ncol.address * 2) + 7)]
 
 # or combined
-combined.compare <- df.address.ab[, c(1:3, 4, 6:7, 
-                                      ncol.address.ab + 4, 
-                                      ncol.address.ab + 6, 
-                                      ncol.address.ab + 7, 
-                                      comp.col + 4,
-                                      comp.col + 6,
-                                      comp.col + 7)]
+combined.compare <- df.address.ab[, c(1:3,
+                                    c(0, ncol.address, ncol.address * 2) + 4,
+                                    c(0, ncol.address, ncol.address * 2) + 6,
+                                    c(0, ncol.address, ncol.address * 2) + 7)]
 
 # Lets identify the rows where there aren't any differences ...
 system.time(goods <- which(
-  rowSums(!df.address.ab[(comp.col + 4) : ncol(df.address.ab)]) == 0))
-system.time(bads <- which(rowSums(!df_join[(ncols * 2): ncol(df_join)]) > 0))
+  rowSums(!df.address.ab[col.start : col.end]) == 0))
+
+# ... and where we are having differences
+system.time(bads <- which(
+  rowSums(!df.address.ab[col.start : col.end]) > 0))
+
+bad.compare <- df.address.ab[bads, c(1:3, c(0,
+                                            ncol.address,
+                                            ncol.address * 2) + 5)]
+View(bad.compare)
+
+# Let's separate the good from the bad
+system.time(df_bad <- df.address.ab[bads,])
+system.time(df_goods <- df.address.ab[goods,])
+
+# we can now calculate the number of differences per column
+# it'll be ugly, but let's plot them
+col_sums <- colSums(!df_bad[col.start: col.end])
+plot(col_sums)
 
 
-                                      
 
 
 
+# ----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
+# old stuff below
 
-
-
-
-
-
-# assign proper column names
-system.time(for (j in 4:ncols) {
-  colnames(df_join)[j + col_dist] <- paste("equal_", gsub("raw.", "", cols_raw[j]), sep = "")
-})
-
-# print number of differences
-# calculation can be done simpler, see below!
-for (j in 4:ncols) {
-  num_diff <- sum(!df_join[j + col_dist])
-  print(paste("Number of differences for column", j, gsub("merged.", "", colnames(df_join)[j]), ":", num_diff))
-}
-
-# Lets identify the rows where there aren't any differences ...
-system.time(goods <- which(rowSums(!df_join[(ncols * 2): ncol(df_join)]) == 0))
-system.time(bads <- which(rowSums(!df_join[(ncols * 2): ncol(df_join)]) > 0))
-
-# ... and separate both data sets
-system.time(df_bad <- df_join[bads,])
-system.time(df_goods <- df_join[goods,])
 
 # Let's free up some memory now
 remove(isEqual, df_join, dt_merged, dt_raw)
