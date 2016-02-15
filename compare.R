@@ -1,19 +1,21 @@
 library(data.table)
 library(stringdist)
+library(rCharts)
 
-setwd("e:/R/compare_data/")
+setwd("~/R/compare")
+#setwd("e:/R/compare")
 
 # assumption: merged and raw record files have the same number of columns
-cols <- read.table("fieldfile_merged.txt", stringsAsFactors = FALSE)
+cols <- read.table("../compare_data/fieldfile_merged.txt", stringsAsFactors = FALSE)
 cols_merged <- gsub("person.0.", "", as.vector(cols$V1))
-cols <- read.table("fieldfile_raw.txt", stringsAsFactors = FALSE)
+cols <- read.table("../compare_data/fieldfile_raw.txt", stringsAsFactors = FALSE)
 cols_raw <- gsub("person.0.", "", as.vector(cols$V1))
 
 ncols <- nrow(cols)
 
 # the data used here is a mongoexport from t02
-system.time(dt_merged <- fread("record_actual_merged_subs.csv", sep = ",", header = TRUE, na.strings = NULL, encoding = "UTF-8", colClasses = rep("character", ncols)))
-system.time(dt_raw <- fread("record_actual_raw_subs.csv", sep = ",", header = TRUE, na.strings = NULL, encoding = "UTF-8", colClasses = rep("character", ncols)))
+system.time(dt_merged <- fread("../compare_data/record_actual_merged_subs.csv", sep = ",", header = TRUE, na.strings = NULL, encoding = "UTF-8", colClasses = rep("character", ncols)))
+system.time(dt_raw <- fread("../compare_data/record_actual_raw_subs.csv", sep = ",", header = TRUE, na.strings = NULL, encoding = "UTF-8", colClasses = rep("character", ncols)))
 
 kpi1 <- nrow(dt_merged)
 kpi2 <- nrow(dt_raw)
@@ -95,7 +97,23 @@ plot(f)
 # we can now calculate the number of differences per column, more efficient than above!
 # it'll be ugly, but let's plot them
 col_sums <- colSums(!df_bad[(ncols * 2): ncol(df_bad)])
-plot(col_sums)
+col_names <- c("Gender", "Form of Address", "Qualification Preceeding", "Given Names Initial", "Given Names Full", "Surname Prefix First",
+               "Surname First", "Qualification Intermediate First", "Middle Name", "Qualification Intermediate Second", "Surname Prefix Second",
+               "Surname Second", "Qualification Succeeding", "Indicator", "Name Qualifier")
+
+df_col_sums <- as.data.frame(col_sums)
+df_col_sums <- cbind(df_col_sums, col_names)
+
+colnames(df_col_sums) <- c("Attribute", "Difference")
+attrib_diff <- nPlot(Attribute ~ Difference, df_col_sums)
+attrib_diff$save("attrib_diff.html", cdn = TRUE)
+attrib_diff$show(cdn = TRUE)
+#attrib_diff$show("server")
+attrib_diff$show(static = FALSE)
+cat('<iframe src="attrib_diff.html" width=100%, height=600></iframe>')
+
+#barplot(col_sums)
+
 
 # and lets do the rowsums as well (number of different fields per reocrd)
 row_sums <- rowSums(!df_bad[(ncols * 2): ncol(df_bad)])

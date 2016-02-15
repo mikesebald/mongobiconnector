@@ -6,6 +6,7 @@ library(plotly)
 # we assume that we compare valid records from both data sets only. Invalid 
 # records haven't been touched by the system, so there is no point in 
 # comparing them
+# ===> reworking this one currently!
 
 # ----------------------------------------------------------------------------
 # reading both files and compare column names to identify differences in the
@@ -13,10 +14,10 @@ library(plotly)
 # from the CSV exports. The data frame helps us to identify differences and
 # to rearrange if necessary
 
-setwd("e:/R/compare_data/")
-#setwd("~/R/compare_data/")
-file.a <- "valid-15.4.csv"
-file.b <- "valid-16.1.csv"
+#setwd("e:/R/compare_data/")
+setwd("../compare_data/")
+file.a <- "member-15.4.csv"
+file.b <- "member-16.1.csv"
 
 # determine the number of columns per file using
 # head -n 1 <filename> |grep -o "\," |wc -l
@@ -42,9 +43,12 @@ column.names <- data.frame(colnames.a, colnames.b, colnames.a == colnames.b,
 # this is the point where we should look at the source and rearrange,
 # if necessary. Both data sets whould have the same columns
 View(column.names)
+sum(!column.names[,3])
+sum(!column.names[,3], na.rm = TRUE)
+
 
 # ----------------------------------------------------------------------------
-# lets check for the number of records and compare them
+# lets check for the number of rows and compare them
 
 nrow.a <- nrow(dt.a)
 nrow.b <- nrow(dt.b)
@@ -53,15 +57,15 @@ total.rows <- data.frame(c("CDH 15.4", "CDH 16.1"),
                          c(nrow.a, nrow.b),
                          c((max.rows - nrow.a), (max.rows - nrow.b)),
                          stringsAsFactors = FALSE)
-colnames(total.rows) <- c("system", "records", "difference")
+colnames(total.rows) <- c("system", "rows", "difference")
 
 plot.rows <- plot_ly(total.rows, x = system, y = records, 
-                     name = "Valid Records", type = "bar") %>%
+                     name = "Valid Rows", type = "bar") %>%
   add_trace(x = system, y = difference, name = "Difference")
 layout(plot.rows, barmode = "stack")
 
 # ----------------------------------------------------------------------------
-# so now we know if there is a difference in the number of valid records. It is
+# so now we know if there is a difference in the number of valid rows It is
 # just the total number. There might be different records validated in system A 
 # and system B so there might be different sets of data valid.
 # So which records are valid in BOTH systems and how many of them are there?
@@ -76,7 +80,7 @@ layout(plot.rows, barmode = "stack")
 #
 # Also we want to measure the difference in address validation and name 
 # validation, so it might be the right time now to split the data sets. In order
-# todo so, we review the column.names data frame created above and select the 
+# to do so, we review the column.names data frame created above and select the 
 # relevant columns for subsetting
 #
 # TODO: Investigate how the selection of the relevant columns to subset can be 
@@ -86,11 +90,11 @@ layout(plot.rows, barmode = "stack")
 # let's start with addresses and exclude the rows without an address type and 
 # then let's get rid of duplicates
 
-dt.a[, c(1, 2, 63:82), with = FALSE] %>%
+dt.a[, c(1, 2, 62:83), with = FALSE] %>%
   subset(postal_address.type != "") %>%
   unique() -> address.a
 
-dt.b[, c(1, 2, 63:82), with = FALSE] %>%
+dt.b[, c(1, 2, 62:83), with = FALSE] %>%
   subset(postal_address.type != "") %>%
   unique() -> address.b
 
@@ -103,12 +107,21 @@ address.rows <- data.frame(c("CDH 15.4", "CDH 16.1"),
                            c((max.rows - nrow.address.a),
                              (max.rows - nrow.address.b)),
                            stringsAsFactors = FALSE)
-colnames(address.rows) <- c("system", "records", "difference")
+colnames(address.rows) <- c("system", "rows", "difference")
 
-plot.address.rows <- plot_ly(address.rows, x = system, y = records, 
+plot.address.rows <- plot_ly(address.rows, x = system, y = rows, 
                              name = "Records with Addresses", type = "bar") %>%
   add_trace(x = system, y = difference, name = "Difference")
 layout(plot.address.rows, barmode = "stack")
+
+
+
+# ----------------------------------------------------------------------------
+# then we should do the same for names and throw away the original input to 
+# make some memory available
+# TODO: name extraction from files
+# TODO: investigate how much sense a call to rm() makes
+rm(dt.a, dt.b)
 
 # ----------------------------------------------------------------------------
 # now we have deduplicated unique addresses per source system and are ready to 
@@ -195,40 +208,35 @@ colnames(df.address.ab)[col.start:col.end] <-
 # some sample comparisons
 street.compare <- df.address.ab[, c(1:3, c(0,
                                            ncol.address,
-                                           ncol.address * 2) + 4)]
+                                           ncol.address * 2) + 5)]
 zip.compare <- df.address.ab[, c(1:3, c(0,
                                         ncol.address,
-                                        ncol.address * 2) + 6)]
+                                        ncol.address * 2) + 7)]
 city.compare <- df.address.ab[, c(1:3, c(0,
                                          ncol.address,
-                                         ncol.address * 2) + 7)]
+                                         ncol.address * 2) + 8)]
 
 # or combined
 combined.compare <- df.address.ab[, c(1:3,
-                                    c(0, ncol.address, ncol.address * 2) + 4,
-                                    c(0, ncol.address, ncol.address * 2) + 6,
-                                    c(0, ncol.address, ncol.address * 2) + 7)]
+                                    c(0, ncol.address, ncol.address * 2) + 5,
+                                    c(0, ncol.address, ncol.address * 2) + 7,
+                                    c(0, ncol.address, ncol.address * 2) + 8)]
 
 # Lets identify the rows where there aren't any differences ...
-system.time(goods <- which(
+system.time(same <- which(
   rowSums(!df.address.ab[col.start : col.end]) == 0))
 
 # ... and where we are having differences
-system.time(bads <- which(
+system.time(different <- which(
   rowSums(!df.address.ab[col.start : col.end]) > 0))
 
-bad.compare <- df.address.ab[bads, c(1:3, c(0,
-                                            ncol.address,
-                                            ncol.address * 2) + 5)]
-View(bad.compare)
-
 # Let's separate the good from the bad
-system.time(df_bad <- df.address.ab[bads,])
-system.time(df_goods <- df.address.ab[goods,])
+system.time(df_different <- df.address.ab[different,])
+system.time(df_same <- df.address.ab[same,])
 
 # we can now calculate the number of differences per column
 # it'll be ugly, but let's plot them
-col_sums <- colSums(!df_bad[col.start: col.end])
+col_sums <- colSums(!df_different[col.start: col.end])
 plot(col_sums)
 
 
