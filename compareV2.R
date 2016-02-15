@@ -7,6 +7,8 @@ library(plotly)
 # records haven't been touched by the system, so there is no point in 
 # comparing them
 # ===> reworking this one currently!
+# !!! 15.4 does not provide us with filled status columns in the CSV export per
+# entity
 
 # ----------------------------------------------------------------------------
 # reading both files and compare column names to identify differences in the
@@ -40,13 +42,24 @@ length(colnames.b) <- max(length(colnames.a), length(colnames.b))
 column.names <- data.frame(colnames.a, colnames.b, colnames.a == colnames.b,
                            stringsAsFactors = FALSE)
 
+
+# ----------------------------------------------------------------------------
 # this is the point where we should look at the source and rearrange,
 # if necessary. Both data sets whould have the same columns
+
 View(column.names)
 sum(!column.names[,3])
 sum(!column.names[,3], na.rm = TRUE)
 
+# ----------------------------------------------------------------------------
+# the number of unique IDs (incl. source system)
 
+unique.keys.a <- unique(dt.a, by = c("record.source", "record.key"))
+unique.keys.b <- unique(dt.b, by = c("record.source", "record.key"))
+
+f <- as.factor(dt.a$postal_address.status)
+
+                        
 # ----------------------------------------------------------------------------
 # lets check for the number of rows and compare them
 
