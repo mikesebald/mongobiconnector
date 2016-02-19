@@ -98,12 +98,18 @@ unique.keys.b <- unique(dt.member.b, by = c("record.source", "record.key"))
 
 f <- as.factor(dt.member.b$postal_address.status)
 
+#
+#
+# TODO: reworked up to here !!!!!!
+#
+#
+
                         
 # ----------------------------------------------------------------------------
 # lets check for the number of rows and compare them
 
-nrow.a <- nrow(dt.a)
-nrow.b <- nrow(dt.b)
+nrow.a <- nrow(dt.member.a)
+nrow.b <- nrow(dt.member.b)
 max.rows <- max(nrow.a, nrow.b)
 total.rows <- data.frame(c("CDH 15.4", "CDH 16.1"),
                          c(nrow.a, nrow.b),
@@ -142,11 +148,11 @@ layout(plot.rows, barmode = "stack")
 # let's start with addresses and exclude the rows without an address type and 
 # then let's get rid of duplicates
 
-dt.a[, c(1, 2, 62:83), with = FALSE] %>%
+dt.member.a[, c(1, 2, 62:83), with = FALSE] %>%
   subset(postal_address.type != "") %>%
   unique() -> address.a
 
-dt.b[, c(1, 2, 62:83), with = FALSE] %>%
+dt.member.b[, c(1, 2, 62:83), with = FALSE] %>%
   subset(postal_address.type != "") %>%
   unique() -> address.b
 
@@ -173,7 +179,7 @@ layout(plot.address.rows, barmode = "stack")
 # make some memory available
 # TODO: name extraction from files
 # TODO: investigate how much sense a call to rm() makes
-rm(dt.a, dt.b)
+rm(dt.member.a, dt.member.b)
 
 # ----------------------------------------------------------------------------
 # now we have deduplicated unique addresses per source system and are ready to 
