@@ -72,7 +72,7 @@ total.rows <- data.frame(c("CDH 15.4", "CDH 16.1"),
                          stringsAsFactors = FALSE)
 colnames(total.rows) <- c("system", "rows", "difference")
 
-plot.rows <- plot_ly(total.rows, x = system, y = records, 
+plot.rows <- plot_ly(total.rows, x = system, y = rows, 
                      name = "Valid Rows", type = "bar") %>%
   add_trace(x = system, y = difference, name = "Difference")
 layout(plot.rows, barmode = "stack")
