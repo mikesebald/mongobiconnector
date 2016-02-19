@@ -18,53 +18,98 @@ library(plotly)
 
 #setwd("e:/R/compare_data/")
 setwd("../compare_data/")
-file.a <- "member-15.4.csv"
-file.b <- "member-16.1.csv"
+file.member.a <- "member-15.4.csv"
+file.member.b <- "member-16.1.csv"
 
 # determine the number of columns per file using
 # head -n 1 <filename> |grep -o "\," |wc -l
-ncol.a <- 113
-ncol.b <- 116
+ncol.member.a <- 113
+ncol.member.b <- 116
 
-system.time(dt.a <- fread(file.a, sep = ",", header = TRUE, na.strings = NULL, 
-                          encoding = "UTF-8", colClasses = rep("character", 
-                          ncol.a)))
-system.time(dt.b <- fread(file.b, sep = ",", header = TRUE, na.strings = NULL,
-                          encoding = "UTF-8", colClasses = rep("character", 
-                          ncol.b)))
+system.time(
+  dt.member.all.a <- fread(
+    file.member.a,
+    sep = ",",
+    header = TRUE,
+    na.strings = NULL,
+    encoding = "UTF-8",
+    colClasses = rep("character", ncol.member.a)
+  )
+)
+system.time(
+  dt.member.all.b <- fread(
+    file.member.b,
+    sep = ",",
+    header = TRUE,
+    na.strings = NULL,
+    encoding = "UTF-8",
+    colClasses = rep("character", ncol.member.b)
+  )
+)
 
-colnames.a <- colnames(dt.a)
-colnames.b <- colnames(dt.b)
+colnames.member.a <- colnames(dt.member.all.a)
+colnames.member.b <- colnames(dt.member.all.b)
 
-length(colnames.a) <- max(length(colnames.a), length(colnames.b))
-length(colnames.b) <- max(length(colnames.a), length(colnames.b))
+length(colnames.member.a) <- max(length(colnames.member.a), 
+                                 length(colnames.member.b))
+length(colnames.member.b) <- max(length(colnames.member.a), 
+                                 length(colnames.member.b))
 
-column.names <- data.frame(colnames.a, colnames.b, colnames.a == colnames.b,
-                           stringsAsFactors = FALSE)
-
+column.member.names <- data.frame(colnames.member.a,
+                                  colnames.member.b,
+                                  colnames.member.a == colnames.member.b,
+                                  stringsAsFactors = FALSE)
 
 # ----------------------------------------------------------------------------
 # this is the point where we should look at the source and rearrange,
 # if necessary. Both data sets whould have the same columns
 
-View(column.names)
-sum(!column.names[,3])
-sum(!column.names[,3], na.rm = TRUE)
+View(column.member.names)
+sum(!column.member.names[,3])
+sum(!column.member.names[,3], na.rm = TRUE)
+
+
+# ----------------------------------------------------------------------------
+# let eliminate the columns we don't need. RStudio's "View" has a limit of 100
+# columns...
+# ... and let's take a look at it again
+
+relevant.member.columns <- c(1:2, 4:5, 9:32, 62:87, 92:98)
+dt.member.a <- dt.member.all.a[, relevant.member.columns, 
+                               with = FALSE]
+dt.member.b <- dt.member.all.b[, relevant.member.columns, 
+                               with = FALSE]
+
+colnames.member.a <- colnames(dt.member.a)
+colnames.member.b <- colnames(dt.member.b)
+
+column.member.names <- data.frame(colnames.member.a,
+                                  colnames.member.b,
+                                  colnames.member.a == colnames.member.b,
+                                  stringsAsFactors = FALSE)
+View(column.member.names)
+
 
 # ----------------------------------------------------------------------------
 # the number of unique IDs (incl. source system)
 
-unique.keys.a <- unique(dt.a, by = c("record.source", "record.key"))
-unique.keys.b <- unique(dt.b, by = c("record.source", "record.key"))
+unique.keys.a <- unique(dt.member.a, by = c("record.source", "record.key"))
+unique.keys.b <- unique(dt.member.b, by = c("record.source", "record.key"))
 
-f <- as.factor(dt.a$postal_address.status)
+f <- as.factor(dt.member.b$postal_address.status)
+
+#
+#
+# TODO: reworked up to here !!!!!!
+#
+#
 
                         
 # ----------------------------------------------------------------------------
 # lets check for the number of rows and compare them
 
-nrow.a <- nrow(dt.a)
-nrow.b <- nrow(dt.b)
+nrow.a <- nrow(dt.member.a)
+nrow.b <- nrow(dt.member.b)
 max.rows <- max(nrow.a, nrow.b)
 total.rows <- data.frame(c("CDH 15.4", "CDH 16.1"),
                          c(nrow.a, nrow.b),
@@ -103,11 +148,11 @@ layout(plot.rows, barmode = "stack")
 # let's start with addresses and exclude the rows without an address type and 
 # then let's get rid of duplicates
 
-dt.a[, c(1, 2, 62:83), with = FALSE] %>%
+dt.member.a[, c(1, 2, 62:83), with = FALSE] %>%
   subset(postal_address.type != "") %>%
   unique() -> address.a
 
-dt.b[, c(1, 2, 62:83), with = FALSE] %>%
+dt.member.b[, c(1, 2, 62:83), with = FALSE] %>%
   subset(postal_address.type != "") %>%
   unique() -> address.b
 
@@ -134,7 +179,7 @@ layout(plot.address.rows, barmode = "stack")
 # make some memory available
 # TODO: name extraction from files
 # TODO: investigate how much sense a call to rm() makes
-rm(dt.a, dt.b)
+rm(dt.member.a, dt.member.b)
 
 # ----------------------------------------------------------------------------
 # now we have deduplicated unique addresses per source system and are ready to 
