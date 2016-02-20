@@ -1,3 +1,4 @@
+
 ---
 title: "Comparing Validation Results of Different CDH Installations"
 output: slidy_presentation
@@ -5,6 +6,55 @@ output: slidy_presentation
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
+
+library(data.table)
+library(ggplot2)
+library(plotly)
+library(dplyr)
+
+file.member.a <- "../compare_data/valid-15.4.csv"
+file.member.b <- "../compare_data/valid-16.1.csv"
+
+ncol.member.a <- 113
+ncol.member.b <- 116
+
+system.time(
+  dt.member.all.a <- fread(
+    file.member.a,
+    sep = ",",
+    header = TRUE,
+    na.strings = NULL,
+    encoding = "UTF-8",
+    colClasses = rep("character", ncol.member.a)
+  )
+)
+system.time(
+  dt.member.all.b <- fread(
+    file.member.b,
+    sep = ",",
+    header = TRUE,
+    na.strings = NULL,
+    encoding = "UTF-8",
+    colClasses = rep("character", ncol.member.b)
+  )
+)
+
+relevant.member.columns <- c(1:2, 4:5, 9:32, 62:87, 92:98)
+dt.member.a <- dt.member.all.a[, relevant.member.columns, 
+                               with = FALSE]
+dt.member.b <- dt.member.all.b[, relevant.member.columns, 
+                               with = FALSE]
+
+rm(dt.member.all.a, dt.member.all.b)
+
+nrow.a <- nrow(dt.member.a)
+nrow.b <- nrow(dt.member.b)
+max.rows <- max(nrow.a, nrow.b)
+total.rows <- data.frame(c("CDH 15.4", "CDH 16.1"),
+                         c(nrow.a, nrow.b),
+                         c((max.rows - nrow.a), (max.rows - nrow.b)),
+                         stringsAsFactors = FALSE)
+colnames(total.rows) <- c("system", "rows", "difference")
 ```
 
 ## Challenge
@@ -61,40 +111,31 @@ suited to go into various directions and to **explore** the data as you go.
 
 At the end we *wrote* the report (this presentation) about our findings.
 
-And this is the result:
+## Hurdles
+
+There are two issues (Ticket 5426) in the CSV export of CDH 15.4:
+
+1. All status columns are empty
+2. The columns member.source, member.key, and labels are missing in the golden 
+record export
+
+Unfortunately this does not allow us to compare the matching results, because we
+just have golden record IDs but no member IDs to compare
+
+Secondly we can only compare valid records. However, it would have been nice to
+compare *all* valid addresses and not just the addresses of valid records.
 
 ## Comparing CDH 15.4 and 16.1
 
-Golden records and member records in both CDH versions:
+Number of member records in both CDH versions:
 
-```{r}
-#plot(x)
+```{r, echo = FALSE}
+plot.rows <- plot_ly(total.rows, x = system, y = rows, 
+                     name = "Valid Rows", type = "bar") %>%
+  add_trace(x = system, y = difference, name = "Difference")
+layout(plot.rows, barmode = "stack")
 ```
+
 
 
 ## End
-
-## Stuff
-
-This is an R Markdown presentation. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document.
-
-## Slide with Bullets
-
-- Bullet 1
-- Bullet 2
-- Bullet 3
-
-## Slide with R Output
-
-```{r cars, echo = TRUE}
-summary(cars)
-```
-
-## Slide with Plot
-
-```{r pressure}
-plot(pressure)
-```
-

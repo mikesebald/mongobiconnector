@@ -1,6 +1,7 @@
 library(data.table)
 library(ggplot2)
 library(plotly)
+library(dplyr)
 
 # ----------------------------------------------------------------------------
 # we assume that we compare valid records from both data sets only. Invalid 
@@ -18,8 +19,8 @@ library(plotly)
 
 #setwd("e:/R/compare_data/")
 setwd("../compare_data/")
-file.member.a <- "member-15.4.csv"
-file.member.b <- "member-16.1.csv"
+file.member.a <- "valid-15.4.csv"
+file.member.b <- "valid-16.1.csv"
 
 # determine the number of columns per file using
 # head -n 1 <filename> |grep -o "\," |wc -l
@@ -73,12 +74,18 @@ sum(!column.member.names[,3], na.rm = TRUE)
 # let eliminate the columns we don't need. RStudio's "View" has a limit of 100
 # columns...
 # ... and let's take a look at it again
+#
+# we subset on record source and key as well as postal_address.
+#
+# POSTAL ADDRESS only from now on !!!
 
-relevant.member.columns <- c(1:2, 4:5, 9:32, 62:87, 92:98)
+relevant.member.columns <- c(1:2, 63:82)
 dt.member.a <- dt.member.all.a[, relevant.member.columns, 
                                with = FALSE]
 dt.member.b <- dt.member.all.b[, relevant.member.columns, 
                                with = FALSE]
+
+rm(dt.member.all.a, dt.member.all.b)
 
 colnames.member.a <- colnames(dt.member.a)
 colnames.member.b <- colnames(dt.member.b)
@@ -91,20 +98,26 @@ View(column.member.names)
 
 
 # ----------------------------------------------------------------------------
-# the number of unique IDs (incl. source system)
-
-unique.keys.a <- unique(dt.member.a, by = c("record.source", "record.key"))
-unique.keys.b <- unique(dt.member.b, by = c("record.source", "record.key"))
-
-f <- as.factor(dt.member.b$postal_address.status)
-
+# - which IDs are not unique?
+# - the number of unique IDs (incl. source system)
 #
-#
-# TODO: reworked up to here !!!!!!
-#
-#
+# In this data model, CDH allows multiple instances of the same entity type, 
+# e.g. multiple "work" email addresses
 
-                        
+count.a <- data.table(count(dt.member.a, record.key))
+nrow(count.a[n > 1])
+
+count.b <- data.table(count(dt.member.b, record.key))
+nrow(count.b[n > 1])
+
+unique.keys.a <- unique(dt.member.a,
+                        by = c("record.source", "record.key"))$record.key
+unique.keys.b <- unique(dt.member.b,
+                        by = c("record.source", "record.key"))$record.key
+
+# just an example here
+#View(dt.member.a[record.key == "1001006632"])
+
 # ----------------------------------------------------------------------------
 # lets check for the number of rows and compare them
 
@@ -121,6 +134,7 @@ plot.rows <- plot_ly(total.rows, x = system, y = rows,
                      name = "Valid Rows", type = "bar") %>%
   add_trace(x = system, y = difference, name = "Difference")
 layout(plot.rows, barmode = "stack")
+
 
 # ----------------------------------------------------------------------------
 # so now we know if there is a difference in the number of valid rows It is
@@ -142,17 +156,17 @@ layout(plot.rows, barmode = "stack")
 # relevant columns for subsetting
 #
 # TODO: Investigate how the selection of the relevant columns to subset can be 
-# automated
+# automated i.e for different CDH data models
 
 # ----------------------------------------------------------------------------
 # let's start with addresses and exclude the rows without an address type and 
 # then let's get rid of duplicates
 
-dt.member.a[, c(1, 2, 62:83), with = FALSE] %>%
+dt.member.a[with = FALSE] %>%
   subset(postal_address.type != "") %>%
   unique() -> address.a
 
-dt.member.b[, c(1, 2, 62:83), with = FALSE] %>%
+dt.member.b[with = FALSE] %>%
   subset(postal_address.type != "") %>%
   unique() -> address.b
 
@@ -171,7 +185,6 @@ plot.address.rows <- plot_ly(address.rows, x = system, y = rows,
                              name = "Records with Addresses", type = "bar") %>%
   add_trace(x = system, y = difference, name = "Difference")
 layout(plot.address.rows, barmode = "stack")
-
 
 
 # ----------------------------------------------------------------------------
@@ -266,19 +279,21 @@ colnames(df.address.ab)[col.start:col.end] <-
 # some sample comparisons
 street.compare <- df.address.ab[, c(1:3, c(0,
                                            ncol.address,
-                                           ncol.address * 2) + 5)]
+                                           ncol.address * 2) + 4)]
 zip.compare <- df.address.ab[, c(1:3, c(0,
                                         ncol.address,
-                                        ncol.address * 2) + 7)]
+                                        ncol.address * 2) + 6)]
 city.compare <- df.address.ab[, c(1:3, c(0,
                                          ncol.address,
-                                         ncol.address * 2) + 8)]
+                                         ncol.address * 2) + 7)]
 
 # or combined
 combined.compare <- df.address.ab[, c(1:3,
-                                    c(0, ncol.address, ncol.address * 2) + 5,
-                                    c(0, ncol.address, ncol.address * 2) + 7,
-                                    c(0, ncol.address, ncol.address * 2) + 8)]
+                                    c(0, ncol.address, ncol.address * 2) + 4,
+                                    c(0, ncol.address, ncol.address * 2) + 6,
+                                    c(0, ncol.address, ncol.address * 2) + 7)]
+
+View(as.data.frame(colnames(df.address.ab)))
 
 # Lets identify the rows where there aren't any differences ...
 system.time(same <- which(
@@ -292,10 +307,30 @@ system.time(different <- which(
 system.time(df_different <- df.address.ab[different,])
 system.time(df_same <- df.address.ab[same,])
 
-# we can now calculate the number of differences per column
+# sanity check: should both be 0
+#max(colSums(!df_same[col.start: col.end]))
+#max(rowSums(!df_same[col.start: col.end]))
+
+# we can now calculate the number of differences per column i.e. how many 
+# difference do we have in ZIP, in city, in hno and so on
 # it'll be ugly, but let's plot them
 col_sums <- colSums(!df_different[col.start: col.end])
 plot(col_sums)
+
+View(df_different[, c(
+  1:3,
+  c(0, ncol.address, ncol.address * 2) + 4,
+  c(0, ncol.address, ncol.address * 2) + 5,
+  c(0, ncol.address, ncol.address * 2) + 6,
+  c(0, ncol.address, ncol.address * 2) + 7
+)])
+
+# and let's do the rowsums as well (number of different fields per reocrd)
+row_sums <- rowSums(!df_different[col.start: col.end])
+row_sums
+
+
+
 
 
 
