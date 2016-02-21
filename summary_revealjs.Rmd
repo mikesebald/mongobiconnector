@@ -2,10 +2,9 @@
 ---
 title: "Comparing Validation Results of Different CDH Installations"
 output: 
-  ioslides_presentation:
-    widescreen: true
-    smaller: true
-    transition: default
+  revealjs::revealjs_presentation: 
+    css: style.css
+    <!-- theme: sky -->
 ---
 
 ```{r setup, include=FALSE}
@@ -61,30 +60,30 @@ total.rows <- data.frame(c("CDH 15.4", "CDH 16.1"),
 colnames(total.rows) <- c("system", "rows", "difference")
 ```
 
-## Challenge
+## Challenge {data-transition="zoom"}
 
-A customer want's to upgrade to a next version of the Uniser Customer Data Hub.
+- A customer want's to upgrade to a next version of the Uniser Customer Data Hub.
 Such an upgrade usually includes new versions of Post, reference tables, 
 convertName and CDH itself.
 
-Since there are so many changes involved with such an upgrade, we want to be 
+> - Since there are so many changes involved with such an upgrade, we want to be 
 sure that the actual results created by such are an installation are at least 
 of the same quality than in the previous or current software stack. We may also 
 want to provide such evidence to the customer who wants to perform the upgrade.
 
-## Approach
+## Approach {data-transition="slide-in fade-out"}
 
-Since the validation results are created by Uniserv components, the idea was to 
+- Since the validation results are created by Uniserv components, the idea was to 
 explicitly NOT use any existing Uniserv software. However using software from
 any of our competitors is of course a no-go as well. So we decided to perform 
 the comparison by solely using **publicly available open-source software**.
 
-Considering the highly customizable data model of CDH which allows for customer
+> - Considering the highly customizable data model of CDH which allows for customer
 specific data models, the appraoch must be flexible to analyse such differences
 and to adapt the model accordingly. Therefore we followed an **exploratory data 
 analysis** approach.
 
-Finally we wanted to have something which allows us to *publish* the results in
+> - Finally we wanted to have something which allows us to *publish* the results in
 different ways (a presentation or reports in PDF or Word or whatever) according
 to the specific needs of the analysis - with **minimal effort**.
 
@@ -104,16 +103,16 @@ For further reading go to
 
 ## So what did we do?
 
-The first question was: where do we get the data from? Since the analysis was
+- The first question was: where do we get the data from? Since the analysis was
 done in the context of a CDH project, we decided to use the **CSV export feature
 provided by CDH**.
 
-Next we loaded these exports into R and started analyzing. During the analysis
+> - Next we loaded these exports into R and started analyzing. During the analysis
 we found out that we forgot to ask the most important question: what are we 
 looking for or what are our KPIs we want to create? Luckily R is perfectly 
 suited to go into various directions and to **explore** the data as you go.
 
-At the end we *wrote* the report (this presentation) about our findings.
+> - At the end we *wrote* the report (this presentation) about our findings.
 
 ## Hurdles
 
