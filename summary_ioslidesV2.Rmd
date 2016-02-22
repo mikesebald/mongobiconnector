@@ -2,9 +2,10 @@
 ---
 title: "Comparing Validation Results of Different CDH Installations"
 output: 
-  revealjs::revealjs_presentation: 
-    css: style.css
-    <!-- theme: sky -->
+  ioslides_presentation:
+    widescreen: true
+    smaller: true
+    transition: default
 ---
 
 ```{r setup, include=FALSE}
@@ -245,7 +246,7 @@ Number of member records in both CDH versions:
 ```{r, echo = FALSE}
 plot.rows <- plot_ly(total.rows, x = system, y = rows, 
                      name = "Valid Rows", type = "bar")
-layout(plot.rows, barmode = "stack", legend = list(x = 1.0, y = 0.5))
+layout(plot.rows, barmode = "stack")
 ```
 
 ## Valid in A, but not in B
@@ -257,14 +258,14 @@ system:
 plot.differents <- plot_ly(differents, x = system, y = counts, 
                            name = "Records which are valid in just one system", 
                            type = "bar")
-layout(plot.differents, barmode = "stack", legend = list(x = 1.0, y = 0.5))
+layout(plot.differents, barmode = "stack")
 ```
 
 ## So why did we have such records?
 
 Example:
 
-## Which postal address attributes are different
+## Differences in address attributes
 
 Which of the postal address attributes are different and how many are different?
 
@@ -272,7 +273,7 @@ Which of the postal address attributes are different and how many are different?
 plot.differents <- plot_ly(df_columns, x = attributes, y = occurences, 
                            name = "Number of Differences per Attributes", 
                            type = "bar")
-layout(plot.differents, autosize = FALSE, height = 300, barmode = "stack")
+layout(plot.differents, barmode = "stack")
 ```
 
 ## End

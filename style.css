@@ -1,5 +1,12 @@
 /* CSS Document */
 
+
+.reveal {
+  font-size: 30px;
+  font-weight: normal;
+  color: #222; }
+  
+/*
 .reveal section p {
   font-size: large;
   color: blue;
@@ -20,3 +27,4 @@
   font-size: 28pt;
   color: black;
 }
+*/

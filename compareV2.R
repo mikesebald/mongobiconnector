@@ -2,6 +2,7 @@ library(data.table)
 library(ggplot2)
 library(plotly)
 library(dplyr)
+library(xlsx)
 
 # ----------------------------------------------------------------------------
 # we assume that we compare valid records from both data sets only. Invalid 
@@ -21,6 +22,10 @@ library(dplyr)
 setwd("../compare_data/")
 file.member.a <- "valid-15.4.csv"
 file.member.b <- "valid-16.1.csv"
+file.all.b <- "member-16.1.csv"
+
+sourcename.a <- "CDH 15.4"
+sourcename.b <- "CDH 16.1"
 
 # determine the number of columns per file using
 # head -n 1 <filename> |grep -o "\," |wc -l
@@ -65,13 +70,13 @@ column.member.names <- data.frame(colnames.member.a,
 # this is the point where we should look at the source and rearrange,
 # if necessary. Both data sets whould have the same columns
 
-View(column.member.names)
+# View(column.member.names)
 sum(!column.member.names[,3])
 sum(!column.member.names[,3], na.rm = TRUE)
 
 
 # ----------------------------------------------------------------------------
-# let eliminate the columns we don't need. RStudio's "View" has a limit of 100
+# lets eliminate the columns we don't need. RStudio's "View" has a limit of 100
 # columns...
 # ... and let's take a look at it again
 #
@@ -94,7 +99,7 @@ column.member.names <- data.frame(colnames.member.a,
                                   colnames.member.b,
                                   colnames.member.a == colnames.member.b,
                                   stringsAsFactors = FALSE)
-View(column.member.names)
+# View(column.member.names)
 
 
 # ----------------------------------------------------------------------------
@@ -124,16 +129,17 @@ unique.keys.b <- unique(dt.member.b,
 nrow.a <- nrow(dt.member.a)
 nrow.b <- nrow(dt.member.b)
 max.rows <- max(nrow.a, nrow.b)
-total.rows <- data.frame(c("CDH 15.4", "CDH 16.1"),
+total.rows <- data.frame(c(sourcename.a, sourcename.b),
                          c(nrow.a, nrow.b),
                          c((max.rows - nrow.a), (max.rows - nrow.b)),
                          stringsAsFactors = FALSE)
 colnames(total.rows) <- c("system", "rows", "difference")
 
-plot.rows <- plot_ly(total.rows, x = system, y = rows, 
-                     name = "Valid Rows", type = "bar") %>%
-  add_trace(x = system, y = difference, name = "Difference")
-layout(plot.rows, barmode = "stack")
+# plot.rows <- plot_ly(total.rows, x = system, y = rows, 
+#                      name = "Valid Rows", type = "bar") %>%
+#   add_trace(x = system, y = difference, name = "Difference") %>%
+#   config(displayModeBar = F)
+# layout(plot.rows, barmode = "stack", legend = list(x = 1.0, y = 0.5))
 
 
 # ----------------------------------------------------------------------------
@@ -174,17 +180,17 @@ nrow.address.a <- nrow(address.a)
 nrow.address.b <- nrow(address.b)
 
 max.rows <- max(nrow.address.a, nrow.address.b)
-address.rows <- data.frame(c("CDH 15.4", "CDH 16.1"),
+address.rows <- data.frame(c(sourcename.a, sourcename.b),
                            c(nrow.address.a, nrow.address.b),
                            c((max.rows - nrow.address.a),
                              (max.rows - nrow.address.b)),
                            stringsAsFactors = FALSE)
 colnames(address.rows) <- c("system", "rows", "difference")
 
-plot.address.rows <- plot_ly(address.rows, x = system, y = rows, 
-                             name = "Records with Addresses", type = "bar") %>%
-  add_trace(x = system, y = difference, name = "Difference")
-layout(plot.address.rows, barmode = "stack")
+# plot.address.rows <- plot_ly(address.rows, x = system, y = rows, 
+#                              name = "Records with Addresses", type = "bar") %>%
+#   add_trace(x = system, y = difference, name = "Difference")
+# layout(plot.address.rows, barmode = "stack")
 
 
 # ----------------------------------------------------------------------------
@@ -215,7 +221,9 @@ nrow.address.ab <- nrow(address.ab)
 # LEFT OUTER join excluding everything on the right. Adding column with X to 
 # have something to filter on
 #
-# TODO: can we visualize that somehow?
+# To answer the "why" question we should now look into the respective CDH 
+# system. Alternatively we could check the full export which includes the 
+# invalid records.
 
 temp <- cbind(address.b, x = "X")
 merge(address.a, temp, all.x = TRUE) %>%
@@ -226,6 +234,18 @@ merge(address.b, temp, all.x = TRUE) %>%
   subset(is.na(x)) -> uniques.b
 
 rm(temp)
+
+differents <- data.frame(system = c(sourcename.a, sourcename.b),
+                         counts = c(nrow(uniques.a), nrow(uniques.b)))
+
+# plot.differents <- plot_ly(differents, x = system, y = counts, 
+#                            name = "Records which are valid in just one system", 
+#                            type = "bar")
+# layout(plot.differents, barmode = "stack")
+
+# optionally write to Excel to look at these records
+#write.xlsx(uniques.a, file = "uniques.a.xls")
+#write.xlsx(uniques.b, file = "uniqies.b.xls")
 
 #sanity.check <- merge(uniques.a, uniques.b)
 #nrow(sanity.check) # -> must return 0
@@ -257,7 +277,7 @@ rm(temp)
 # Thanks to the post in http://datascienceplus.com/strategies-to-speedup-r-code/
 # for helping on the performance side
 
-View(data.table(colnames(address.ab)))
+# View(data.table(colnames(address.ab)))
 
 ncol.address <- ncol(address.a) - 3
 df.address.ab <- as.data.frame(address.ab)
@@ -293,7 +313,7 @@ combined.compare <- df.address.ab[, c(1:3,
                                     c(0, ncol.address, ncol.address * 2) + 6,
                                     c(0, ncol.address, ncol.address * 2) + 7)]
 
-View(as.data.frame(colnames(df.address.ab)))
+# View(as.data.frame(colnames(df.address.ab)))
 
 # Lets identify the rows where there aren't any differences ...
 system.time(same <- which(
@@ -311,11 +331,21 @@ system.time(df_same <- df.address.ab[same,])
 #max(colSums(!df_same[col.start: col.end]))
 #max(rowSums(!df_same[col.start: col.end]))
 
+
 # we can now calculate the number of differences per column i.e. how many 
 # difference do we have in ZIP, in city, in hno and so on
-# it'll be ugly, but let's plot them
-col_sums <- colSums(!df_different[col.start: col.end])
-plot(col_sums)
+
+col.sums <- colSums(!df_different[col.start:col.end])
+col.names <- gsub(".equal", "", colnames(df_different[col.start:col.end])) %>%
+  gsub(pattern = "postal_address.", replacement = "") 
+df_columns <- data.frame(attributes = col.names, occurences = col.sums)
+
+plot.differents <- plot_ly(df_columns, x = attributes, y = occurences, 
+                           name = "Number of Differences per Attributes", 
+                           type = "bar")
+layout(plot.differents, barmode = "stack")
+
+
 
 View(df_different[, c(
   1:3,
@@ -326,9 +356,8 @@ View(df_different[, c(
 )])
 
 # and let's do the rowsums as well (number of different fields per reocrd)
-row_sums <- rowSums(!df_different[col.start: col.end])
-row_sums
-
+row.sums <- rowSums(!df_different[col.start: col.end])
+row.sums
 
 
 
