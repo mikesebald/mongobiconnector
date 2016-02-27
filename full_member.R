@@ -3,6 +3,7 @@ library(ggplot2)
 library(plotly)
 library(reshape)
 library(stringr)
+library(plyr)
 
 setwd("../compare_data/")
 file.b <- "member-16.1.csv"
@@ -45,17 +46,29 @@ dt.address.b <- dt.address.all.b[!none]
 dt.address.valids.b <- dt.address.all.b[valids]
 dt.address.invalids.b <- dt.address.all.b[invalids]
 
-max.sep.b <- 
-  max(str_count(dt.address.invalids.b$postal_address.validation_messages, ","))
-valmsgs.b <- 
-  colsplit(dt.address.invalids.b$postal_address.validation_messages, ",",
-           paste("ValMsg", c(1:max.sep.b), sep = ""))
-dt <- cbind(dt.address.invalids.b, 
-            str_count(dt.address.invalids.b$postal_address.validation_messages, 
-                      ","),
-            valmsgs.b)
+df.temp <- 
+  as.data.frame(
+    tstrsplit(dt.address.invalids.b$postal_address.validation_messages,
+              split = ",")
+    )
 
-dt <- dt[, colnames(dt)[3:6] := NULL]
+colnames(df.temp) <- paste("ValMsg", c(1:ncol(df.temp)), sep = "")
+
+#View(df.temp)
+
+dt <- cbind(dt.address.invalids.b, df.temp)
+
+# max.sep.b <- 
+#   max(str_count(dt.address.invalids.b$postal_address.validation_messages, ","))
+# valmsgs.b <- 
+#   colsplit(dt.address.invalids.b$postal_address.validation_messages, ",",
+#            paste("ValMsg", c(1:max.sep.b), sep = ""))
+# dt <- cbind(dt.address.invalids.b, 
+#             str_count(dt.address.invalids.b$postal_address.validation_messages, 
+#                       ","),
+#             valmsgs.b)
+
+dt <- dt[, colnames(dt)[3:5] := NULL]
 dt <- melt(dt, id.vars = c("record.source", "record.key"))
 dt <- unique(dt)
 
