@@ -15,6 +15,7 @@ shape_kommunal <- readOGR(file_name, layer = "AX_KommunalesGebiet",
 data_kommunal_dt <- as.data.table(shape_kommunal@data)
 head(data_kommunal_dt)
 
+# will do more stuff tomorrow
 
 
 # #############################################################################
