@@ -1,22 +1,29 @@
 library(sp)
 library(rgdal)
 library(geojsonio)
-library(ggmap)
-library(maptools)
-library(RColorBrewer)
-library(leaflet)
+library(broom)
+library(data.table)
 
 
-layers1 <- ogrListLayers("../gis_data/dpd/DPDPLZ_20161024.shp")
 
-shape1 <- readOGR("../gis_data/dpd/DPDPLZ_20161024.shp", 
-                  layer = "DPDPLZ_20161024")
+# layers1 <- ogrListLayers("../gis_data/dpd_complete/DPDPLZ_SHAPES/DE_DPDPLZ_20161028.shp")
+shape1 <- readOGR("c:/DPD_Shapefiles/DPDPLZ_SHAPES/DE_DPDPLZ_20161028.shp",
+                  layer = "DE_DPDPLZ_20161028")
 
-plot(shape1)
+polys.df <- tidy(shape1)
 
-file_to_geojson("../gis_data/dpd/DPDPLZ_20161024.shp",
-                output = "../gis_data/DPDPLZ_20161024",
-                method = "local")
+fromMongo <- read.csv("c:/temp/dpd/dpdplz.txt")
+
+polys.dt <- as.data.table(polys.df)
+mongo.dt <- as.data.table(fromMongo)
+
+
+
+
+shape <- spTransform(shape1, CRS("+proj=longlat +datum=WGS84"))
+
+geojson_write(shape, file = "c:/temp/DE_DPDPLZ_20161028_2")
+
 
 # #############################################################################
 
