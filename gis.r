@@ -3,6 +3,22 @@ library(rgdal)
 library(geojsonio)
 library(broom)
 library(data.table)
+library(dplyr)
+
+
+file_name <- "../gis_data/bw/AX_KommunalesGebiet.shp"
+# shape_layers <- ogrListLayers(file_name)
+# ogrInfo(file_name, "AX_KommunalesGebiet")
+shape_kommunal <- readOGR(file_name, layer = "AX_KommunalesGebiet", 
+                          use_iconv = TRUE, 
+                          encoding = "UTF-8")
+data_kommunal_dt <- as.data.table(shape_kommunal@data)
+head(data_kommunal_dt)
+
+
+
+# #############################################################################
+
 
 
 
