@@ -28,4 +28,5 @@ record_actual_merged_party <- sqlQuery(bi_odbc, as.is = TRUE,
                                        record_actual_merged_party")
 
 
+# more stuff to come...
 
