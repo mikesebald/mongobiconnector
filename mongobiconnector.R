@@ -23,7 +23,7 @@ sqlQuery(bi_odbc, query = "select * from record_actual limit 1")
 microbenchmark({
   postal_address <- sqlQuery(bi_odbc,
                              query = "select * from record_actual_validated_postal_address")
-}, times = 5)
+}, times = 1)
 
 nrow(postal_address)
 countries <- table(postal_address$validated.postal_address.country_code)
